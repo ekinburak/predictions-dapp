@@ -1,0 +1,22 @@
+# anchor/programs/anchor/pyth_program/Cargo.toml
+
+[package]
+name = "pyth_program"
+version = "0.1.0"
+description = "Pyth Program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "*"
+ahash = "=0.8.6"
+pyth-sdk-solana = "*"

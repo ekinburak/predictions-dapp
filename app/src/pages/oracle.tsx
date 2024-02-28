@@ -1,3 +1,5 @@
+// app/src/pages/oracle.tsx
+
 import React, { useCallback, useEffect } from 'react';
 import './style.css'
 import config from '@/config';

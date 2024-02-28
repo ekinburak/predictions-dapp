@@ -2,18 +2,14 @@
 
 import React from 'react';
 import { NavBar } from "@/components/NavBar";
-import { Header } from '@/components/header';
-import { PythSendUsd } from '@/components/pyth_send_usd';
-import { Oracle } from '@/components/oracle';
+import { PriceGraphBet } from '@/components/PriceGraphBet';
 import './style.css'
 
 const IndexPage: React.FC = () => {
     return (
         <div>
             <NavBar />
-            <Header />
-            <PythSendUsd />
-            <Oracle />
+            <PriceGraphBet />
         </div>
     );
 };

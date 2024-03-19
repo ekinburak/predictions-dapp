@@ -1,44 +1,46 @@
-import React, { useState, useEffect } from 'react';
+// app/src/components/PriceGraphBet.tsx
+
+import React, { FormEvent, useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useFetchLatestPrice } from '../hooks/priceGraph';
+import { useManualFetchLatestPrice } from '../hooks/priceGraph';
 import { useConnection, useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
 import config from "@/config";
-import { PublicKey } from '@solana/web3.js';
+import { AnchorProvider, Program, web3, BN } from '@project-serum/anchor';
+import { PublicKey,LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { PythPriceFeed } from '@/components/PythPriceFeed'; // Adjust the path as necessary
+import { initializeMasterAccount } from '../hooks/initializeMasterAccount'; // Adjust path as necessary
+import { useSmartContract } from '../hooks/PredictionBetting'; // Adjust the path as necessary
 
 
-export const PriceGraphBet = () => {
+export const BettingComponent = () => {
     const { connection } = useConnection();
     const wallet = useAnchorWallet();
     const [betAmount, setBetAmount] = useState('');
     const [pricePrediction, setPricePrediction] = useState('');
     const [duration, setDuration] = useState('');
+    
+    const { submitBet: submitBetToBlockchain } = useSmartContract(); // Destructure and rename for clarity
 
-    // Use the hook to fetch the latest price
-    const { priceAccountData, error } = useFetchLatestPrice({
-        connection,
-        wallet,
-        programId: new PublicKey(config.priceFeedProgramId),
-    });
-
-    // Extract the latest price, handle null or undefined values
-    const latestPrice = priceAccountData?.price
-        ? `$${priceAccountData.price}`
-        : 'Fetching...';
-
-    // Use the hook to fetch the latest price
     useEffect(() => {
-        // Log to ensure that the data is fetched
-        if (priceAccountData) {
-            console.log(`New price fetched: ${priceAccountData.price}`);
+        // Ensure wallet is connected before attempting to initialize the master account
+        if (wallet && wallet.publicKey) {
+            initializeMasterAccount(connection, wallet)
+                .then((status) => console.log(status)) // Log the returned status
+                .catch((error) => console.error("Failed to initialize master account", error));
         }
-    }, [priceAccountData]); // Re-run this effect when priceAccountData changes
+    }, [wallet, connection]); // Depend on wallet and connection to rerun
 
-    const submitBet = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        console.log('Bet submitted with details:', { betAmount, pricePrediction, duration });
-        // Integration with smart contract to submit bet would go here.
+        // Directly pass the string values
+        try {
+            await submitBetToBlockchain(betAmount, pricePrediction, duration, config.priceFeedKey);
+            console.log('Bet successfully submitted');
+        } catch (error) {
+            console.error("Error submitting bet to blockchain:", error);
+        }
     };
 
     return (
@@ -52,17 +54,23 @@ export const PriceGraphBet = () => {
                                 Enter your bet details below. Use Pyth Network's price feeds for real-time SOL price prediction.
                             </p>
                         </div>
-                        <form onSubmit={submitBet} className="w-full max-w-sm space-y-4">
+                        <div className="container mx-auto">
+                            <PythPriceFeed /> {/* This will render the PythPriceFeed component at the top */}
+                            <div className="px-8 md:px-12 lg:px-24 xl:px-32">
+                                {/* The rest of your component's content follows... */}
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
                             <Input
                                 className="max-w-lg flex-1"
-                                placeholder="Bet Amount"
+                                placeholder="Bet Amount in SOL"
                                 type="number"
                                 value={betAmount}
                                 onChange={(e) => setBetAmount(e.target.value)}
                             />
                             <Input
                                 className="max-w-lg flex-1"
-                                placeholder="Price Prediction"
+                                placeholder="SOL Price Prediction in USD"
                                 type="text"
                                 value={pricePrediction}
                                 onChange={(e) => setPricePrediction(e.target.value)}
@@ -86,9 +94,6 @@ export const PriceGraphBet = () => {
                         <div className="graph-area bg-gray-200 dark:bg-gray-700 h-64 flex items-center justify-center">
                             <p className="text-gray-500 dark:text-gray-300">Price Graph Placeholder</p>
                         </div>
-                        <p className="text-center mt-4 text-lg font-medium">
-                            Latest Price: {error ? <span className="text-red-500">Error: {error}</span> : latestPrice}
-                        </p>
                     </div>
                 </div>
             </div>
@@ -96,4 +101,4 @@ export const PriceGraphBet = () => {
     );
 };
 
-export default PriceGraphBet;
+export default BettingComponent;

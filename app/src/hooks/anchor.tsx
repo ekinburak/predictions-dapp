@@ -58,7 +58,7 @@ export const getProgram = async (
  * @param idl - The interface definition of the program.
  * @returns An array of all counter accounts.
  */
-export const getDataAccounts = async <T extends unknown>(connection: Connection, wallet: AnchorWallet | undefined, programId: Address, idl: Idl) => {
+export const getAllDataAccounts = async <T extends unknown>(connection: Connection, wallet: AnchorWallet | undefined, programId: Address, idl: Idl) => {
     if (!wallet) {
         console.log('Wallet is not connected');
         return [];
@@ -86,7 +86,7 @@ export const getDataAccounts = async <T extends unknown>(connection: Connection,
  * @param idl - The interface definition of the program.
  * @returns The fetched account data or null.
  */
-export const fetchDataAccount = async <T extends unknown>(
+export const getDataAccount = async <T extends unknown>(
     connection: Connection, 
     wallet: AnchorWallet | undefined, 
     programId: Address, 

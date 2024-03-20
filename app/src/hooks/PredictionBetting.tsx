@@ -48,7 +48,7 @@ export const useSmartContract = () => {
       try {
         // First cast to unknown, then to MasterAccount
         const masterAccount = await program.account.master.fetch(address) as unknown as MasterAccount;
-        const lastBetId = masterAccount.lastBetId.toNumber(); // Should work if lastBetId is indeed a BN
+        const lastBetId = masterAccount.lastBetId.toNumber(); 
         setMasterLastBetId(lastBetId);
       } catch (error) {
         console.error("Failed to fetch master account details:", error);
@@ -66,7 +66,6 @@ export const useSmartContract = () => {
         return;
     }
 
-    // Assuming the 'sol' parameter represents the amount in SOL (not in lamports) to be converted to lamports
     const amountLamports = new BN(parseFloat(sol) * web3.LAMPORTS_PER_SOL); // Convert SOL to lamports
     const predictionPrice = parseFloat(guess); // Assuming predictionPrice does not need to be converted into BN for your smart contract
     const durationSeconds = new BN(parseInt(time, 10)); // Convert string to number then to BN

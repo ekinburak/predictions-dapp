@@ -47,19 +47,21 @@ const AvailableBets = () => {
             <tbody>
               {bets.map((bet) => (
                 <tr key={bet.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                  <td className="px-4 py-2">{bet.id}</td>
-                  <td className="px-4 py-2">{bet.pair}</td>
-                  <td className="px-4 py-2">{bet.potVolume}</td>
-                  <td className="px-4 py-2">{bet.duration}</td>
-                  <td className="px-4 py-2">{bet.status}</td>
-                  <td className="px-4 py-2">
-                    <button
-                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                      onClick={() => openEnterBetForm(bet.id)}
-                    >
-                      Enter Bet
-                    </button>
-                  </td>
+                    <td className="px-4 py-2">{bet.id}</td>
+                    <td className="px-4 py-2">{bet.pair}</td>
+                    <td className="px-4 py-2">{bet.potVolume}</td>
+                    <td className="px-4 py-2">{Math.max(bet.duration, 0)}</td>
+                    <td className="px-4 py-2">{bet.status}</td>
+                    <td className="px-4 py-2">
+                        {bet.status !== 'Expired' && bet.duration > 0 && (
+                            <button
+                                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={() => openEnterBetForm(bet.id)}
+                            >
+                                Enter Bet
+                            </button>
+                        )}
+                    </td>
                 </tr>
               ))}
             </tbody>

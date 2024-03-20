@@ -9,9 +9,9 @@ import { useConnection, useWallet, useAnchorWallet } from "@solana/wallet-adapte
 import config from "@/config";
 import { AnchorProvider, Program, web3, BN } from '@project-serum/anchor';
 import { PublicKey,LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { PythPriceFeed } from '@/components/PythPriceFeed'; // Adjust the path as necessary
-import { initializeMasterAccount } from '../hooks/initializeMasterAccount'; // Adjust path as necessary
-import { useSmartContract } from '../hooks/PredictionBetting'; // Adjust the path as necessary
+import { PythPriceFeed } from '@/components/PythPriceFeed'; 
+import { initializeMasterAccount } from '../hooks/initializeMasterAccount'; 
+import { useSmartContract } from '../hooks/PredictionBetting'; 
 
 
 export const BettingComponent = () => {

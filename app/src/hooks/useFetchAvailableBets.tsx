@@ -11,7 +11,7 @@ interface IBetAccount {
     id: BN;
     amount: BN;
     expiryTs: BN;
-    state: object; // Since state is coming as an object
+    state: object;  // Since state is coming as an object
 }
 
 type Bet = {
@@ -22,10 +22,13 @@ type Bet = {
     status: string;
 };
 
+
 // Helper function to interpret the state object into a readable string
-function interpretBetState(stateObj: object): string {
+function interpretBetState(stateObj: object, duration: number): string {
     const stateKeys = Object.keys(stateObj);
-    if (stateKeys.includes('created')) {
+    if (duration < 0 && (stateKeys.includes('created') || stateKeys.includes('started'))) {
+        return 'Expired'; // Mark as Expired if duration is less than 0 and state is Created or Started
+    } else if (stateKeys.includes('created')) {
         return 'Created';
     } else if (stateKeys.includes('started')) {
         return 'Started';
@@ -57,12 +60,13 @@ const useFetchAvailableBets = () => {
                 const formattedBets = fetchedBets.map(bet => {
                     // Assuming the account data matches the IBetAccount interface
                     const accountData = bet.account as unknown as IBetAccount;
+                    const duration = accountData.expiryTs.toNumber() - Math.floor(Date.now() / 1000);
                     return {
                         id: accountData.id.toString(),
                         pair: "SOL/USDC", // Example, adjust as needed
                         potVolume: accountData.amount.toNumber(),
                         duration: accountData.expiryTs.toNumber() - Math.floor(Date.now() / 1000),
-                        status: interpretBetState(accountData.state), // Use the helper function here
+                        status: interpretBetState(accountData.state, duration), // Pass duration here
                     };
                 });
 

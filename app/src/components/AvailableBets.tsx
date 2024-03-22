@@ -3,11 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import { EnterBetForm } from './EnterBetForm'; // Import the EnterBetForm component
 import useFetchAvailableBets from '../hooks/useFetchAvailableBets'; // Ensure the correct path is used
+import { useClaimBet } from '../hooks/useClaimBet'; // Import the useClaimBet hook
 import { useEnterBet } from '../hooks/useEnterBet'; // Import the useEnterBet hook
 
-const AvailableBets = () => {
+interface AvailableBetsProps {
+  connectedWalletAddress: string; // Declare the type of connectedWalletAddress as string
+}
+
+const AvailableBets: React.FC<AvailableBetsProps> = ({ connectedWalletAddress }) => {
   const { bets, isLoading } = useFetchAvailableBets();
   const { enterBet, loading: enteringBet, error } = useEnterBet(); // Use the useEnterBet hook
+  const { claimBet, loading: claimingBet, error: claimError } = useClaimBet(); // Use the useClaimBet hook
   const [selectedBetId, setSelectedBetId] = useState<string | null>(null);
 
   // Function to open the EnterBetForm for a specific bet
@@ -26,7 +32,19 @@ const AvailableBets = () => {
     }
   };
 
+  const handleClaimBet = async (betId: string) => {
+    try {
+      await claimBet(betId);
+      // Optionally handle success
+    } catch (error) {
+      console.error("Failed to claim bet:", error);
+      // Handle the error case, e.g., show an error message
+    }
+  };
+
   if (isLoading) return <p>Loading bets...</p>;
+
+  const currentTimestamp = Math.floor(Date.now() / 1000);
 
   return (
     <section className="w-full py-8 md:py-16 lg:py-24 xl:py-32">
@@ -53,13 +71,16 @@ const AvailableBets = () => {
                     <td className="px-4 py-2">{Math.max(bet.duration, 0)}</td>
                     <td className="px-4 py-2">{bet.status}</td>
                     <td className="px-4 py-2">
-                        {bet.status !== 'Expired' && bet.duration > 0 && (
-                            <button
-                                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                onClick={() => openEnterBetForm(bet.id)}
-                            >
-                                Enter Bet
-                            </button>
+                    {(bet.predictionA?.player === connectedWalletAddress || bet.predictionB?.player === connectedWalletAddress) &&
+                      currentTimestamp > bet.expiryTs && (
+                        <button onClick={() => handleClaimBet(bet.id)}>
+                          Claim Bet
+                        </button>
+                      )}
+                      {bet.status !== 'Expired' && bet.duration > 0 && (
+                        <button onClick={() => openEnterBetForm(bet.id)}>
+                          Enter Bet
+                        </button>
                         )}
                     </td>
                 </tr>

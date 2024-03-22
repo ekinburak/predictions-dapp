@@ -5,22 +5,7 @@ import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { AnchorProvider, Program, web3, BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import config from '@/config';
-
-// You might not need to define the entire interface if you're only using part of it
-interface IBetAccount {
-    id: BN;
-    amount: BN;
-    expiryTs: BN;
-    state: object;  // Since state is coming as an object
-}
-
-type Bet = {
-    id: string;
-    pair: string;
-    potVolume: number;
-    duration: number;
-    status: string;
-};
+import { IBetAccount, Bet, BetState, Prediction } from '@/lib/types';
 
 
 // Helper function to interpret the state object into a readable string
@@ -61,14 +46,19 @@ const useFetchAvailableBets = () => {
                     // Assuming the account data matches the IBetAccount interface
                     const accountData = bet.account as unknown as IBetAccount;
                     const duration = accountData.expiryTs.toNumber() - Math.floor(Date.now() / 1000);
+                  
                     return {
                         id: accountData.id.toString(),
                         pair: "SOL/USDC", // Example, adjust as needed
-                        potVolume: accountData.amount.toNumber(),
-                        duration: accountData.expiryTs.toNumber() - Math.floor(Date.now() / 1000),
-                        status: interpretBetState(accountData.state, duration), // Pass duration here
-                    };
-                });
+                        potVolume: accountData.amount.toNumber(), // Ensure this is a number
+                        duration,
+                        status: interpretBetState(accountData.state, duration), // Derive the 'status' string
+                        state: accountData.state,
+                        predictionA: accountData.predictionA,
+                        predictionB: accountData.predictionB ? accountData.predictionB : undefined,
+                        expiryTs: duration, // Add expiryTs property to each object
+                      };
+                  });
 
                 setBets(formattedBets);
             } catch (error) {

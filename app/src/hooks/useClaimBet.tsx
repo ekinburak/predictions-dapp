@@ -1,10 +1,10 @@
 // app/src/hooks/useClaimBet.ts
 
 import { useCallback, useState } from 'react';
-import * as anchor from '@project-serum/anchor';
+import * as anchor from '@coral-xyz/anchor';
 import { useConnection, useAnchorWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
-import { AnchorProvider, Program } from '@project-serum/anchor';
+import { PublicKey, Context } from '@solana/web3.js';
+import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import config from '@/config'; 
 import { Bet, IBetAccount } from '@/lib/types';
 
@@ -34,10 +34,12 @@ export const useClaimBet = () => {
             setLoading(true);
 
             // Convert betId to number
-            const betIndex = parseInt(betId, 10);
-            if (isNaN(betIndex)) {
-                throw new Error(`Invalid betId: ${betId}`);
-            }
+            // const betIndex = parseInt(betId, 10);
+            // if (isNaN(betIndex)) {
+            //     throw new Error(`Invalid betId: ${betId}`);
+            // }
+
+            const betIndex = 6;
 
             // Generate seeds for PDA
             const seeds = [
@@ -47,15 +49,16 @@ export const useClaimBet = () => {
             console.log("Generated seeds for PDA");
 
             // Find the PDA using generated seeds
-            const [betAccountPDA, _bump] = await PublicKey.findProgramAddressSync(seeds, programId);
+            const [betAccountPDA, _bump] = await anchor.web3.PublicKey.findProgramAddressSync(seeds, programId);
             console.log("Bet Account PDA:", betAccountPDA.toString(), "Bump:", _bump);
 
             // Fetch the Bet account associated with the bet ID
             console.log("Fetching Bet account...");
-            const fetchedBetAccount : IBetAccount = await program.account.bet.fetch(betAccountPDA); // Using IBetAccount interface
+            //let fetchedBetAccount = await program.account.bet.fetch(betAccountPDA) as IBetAccount;
+            const fetchedBetAccount: IBetAccount = await program.account.bet.fetch(betAccountPDA);
             console.log("Bet Account:", fetchedBetAccount);
 
-            // Extract PYTH account public key, Player A's public key, and Player B's public key from the Bet account
+            // // Extract PYTH account public key, Player A's public key, and Player B's public key from the Bet account
             const pyth = new anchor.web3.PublicKey(fetchedBetAccount.pythPriceKey);
             const playerA = new anchor.web3.PublicKey(fetchedBetAccount.predictionA.player);
             const playerB = fetchedBetAccount.predictionB ? new anchor.web3.PublicKey(fetchedBetAccount.predictionB.player) : null;
@@ -69,11 +72,10 @@ export const useClaimBet = () => {
             .claimBet()
             .accounts({
                 bet: betAccountPDA,
-                pyth, 
-                playerA: playerA,
+                pyth: fetchedBetAccount.pythPriceKey,
+                playerA: fetchedBetAccount.predictionA.player,
                 playerB: playerBAddress,
-                signer: wallet.publicKey,
-                systemProgram: anchor.web3.SystemProgram.programId,
+                signer: wallet.publicKey
             })
             .rpc();
 

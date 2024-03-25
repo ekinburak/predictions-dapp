@@ -3,7 +3,7 @@
 import { BN } from '@project-serum/anchor';
 
 export interface Prediction {
-    player: string;
+    player: string; // Public Key of the player
     price: number;
 }
 
@@ -15,11 +15,11 @@ export type BetState = {
 export interface IBetAccount {
     id: BN;
     amount: BN;
-    pythPriceKey: string;
     predictionA: Prediction;
-    predictionB?: Prediction;
-    expiryTs: BN;
+    predictionB: Prediction | undefined;
     state: BetState;
+    pythPriceKey: string;           // Public Key of PYTH price feed
+    expiryTs: BN;
 }
 
 // Bet represents the broader concept of a betting opportunity or event visible to users.

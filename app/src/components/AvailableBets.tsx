@@ -71,17 +71,18 @@ const AvailableBets: React.FC<AvailableBetsProps> = ({ connectedWalletAddress })
                     <td className="px-4 py-2">{Math.max(bet.duration, 0)}</td>
                     <td className="px-4 py-2">{bet.status}</td>
                     <td className="px-4 py-2">
-                    {(bet.predictionA?.player === connectedWalletAddress || bet.predictionB?.player === connectedWalletAddress) &&
-                      currentTimestamp > bet.expiryTs && (
-                        <button onClick={() => handleClaimBet(bet.id)}>
-                          Claim Bet
-                        </button>
+                    {(bet.predictionA?.player === connectedWalletAddress || (bet.predictionB && bet.predictionB.player === connectedWalletAddress)) &&
+                        currentTimestamp > bet.expiryTs && (
+                          <button onClick={() => handleClaimBet(bet.id)}>
+                            Claim Bet
+                          </button>
+                        )
+                      }
+                    {bet.status !== 'Expired' && bet.duration > 0 && (
+                      <button onClick={() => openEnterBetForm(bet.id)}>
+                        Enter Bet
+                      </button>
                       )}
-                      {bet.status !== 'Expired' && bet.duration > 0 && (
-                        <button onClick={() => openEnterBetForm(bet.id)}>
-                          Enter Bet
-                        </button>
-                        )}
                     </td>
                 </tr>
               ))}

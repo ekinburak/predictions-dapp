@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from "@solana/wallet-adapter-react";
 
-export function NavBar() {
+export function NavBar() { // Use the specified type in function parameter
   // Use the useWallet hook to check the wallet connection status
   const { connected } = useWallet();
 

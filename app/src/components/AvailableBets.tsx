@@ -1,19 +1,28 @@
 // app/src/components/AvailableBets.tsx
 
 import React, { useEffect, useState } from 'react';
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useAnchorWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 import { EnterBetForm } from './EnterBetForm'; // Import the EnterBetForm component
 import useFetchAvailableBets from '../hooks/useFetchAvailableBets'; // Ensure the correct path is used
 import { useClaimBet } from '../hooks/useClaimBet'; // Import the useClaimBet hook
 import { useEnterBet } from '../hooks/useEnterBet'; // Import the useEnterBet hook
+import { useCloseBet } from '../hooks/useCloseBet'; // Import the useCloseBet hook
+import { Wallet } from '@project-serum/anchor';
+
 
 interface AvailableBetsProps {
   connectedWalletAddress: string; // Declare the type of connectedWalletAddress as string
 }
 
 const AvailableBets: React.FC<AvailableBetsProps> = ({ connectedWalletAddress }) => {
+  const wallet = useAnchorWallet();
+
   const { bets, isLoading } = useFetchAvailableBets();
   const { enterBet, loading: enteringBet, error } = useEnterBet(); // Use the useEnterBet hook
   const { claimBet, loading: claimingBet, error: claimError } = useClaimBet(); // Use the useClaimBet hook
+  const { closeBet, loading: closingBet, error: closeBetError } = useCloseBet(); // Use the useCloseBet hook
   const [selectedBetId, setSelectedBetId] = useState<string | null>(null);
 
   // Function to open the EnterBetForm for a specific bet
@@ -38,6 +47,16 @@ const AvailableBets: React.FC<AvailableBetsProps> = ({ connectedWalletAddress })
       // Optionally handle success
     } catch (error) {
       console.error("Failed to claim bet:", error);
+      // Handle the error case, e.g., show an error message
+    }
+  };
+
+  const handleBetClose = async (betId: string) => {
+    try {
+      await closeBet(betId);
+      // Optionally handle success
+    } catch (error) {
+      console.error("Failed to close bet:", error);
       // Handle the error case, e.g., show an error message
     }
   };
@@ -82,6 +101,15 @@ const AvailableBets: React.FC<AvailableBetsProps> = ({ connectedWalletAddress })
                       <button onClick={() => openEnterBetForm(bet.id)}>
                         Enter Bet
                       </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      {bet.predictionA?.player instanceof PublicKey ? bet.predictionA?.player.toBase58() : bet.predictionA?.player}
+                    </td>
+                    <td className="px-4 py-2">{ wallet?.publicKey.toBase58() || 'Wallet not connected'}</td>
+                    <td className="px-4 py-2">
+                      {typeof bet.predictionA?.player === 'object' && bet.predictionA?.player.toBase58() === wallet?.publicKey.toBase58() && (
+                        <button onClick={() => handleBetClose(bet.id)}>Close Bet</button>
                       )}
                     </td>
                 </tr>

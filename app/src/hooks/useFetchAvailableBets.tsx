@@ -33,45 +33,50 @@ const useFetchAvailableBets = () => {
     const [bets, setBets] = useState<Bet[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchBets = useCallback(async () => {
+        if (!wallet || !connection) return;
+
+        setIsLoading(true);
+
+        const provider = new AnchorProvider(connection, wallet, AnchorProvider.defaultOptions());
+        const program = new Program(config.predictionsBetIdl, new PublicKey(config.predictionsBetProgramId), provider);
+
+        try {
+            const fetchedBets = await program.account.bet.all();
+            const formattedBets = fetchedBets.map(bet => {
+                // Assuming the account data matches the IBetAccount interface
+                const accountData = bet.account as unknown as IBetAccount;
+                const duration = accountData.expiryTs.toNumber() - Math.floor(Date.now() / 1000);
+                
+                return {
+                    id: accountData.id.toString(),
+                    pair: "SOL/USDC", // Example, adjust as needed
+                    potVolume: accountData.amount.toNumber(), // Ensure this is a number
+                    duration,
+                    status: interpretBetState(accountData.state, duration), // Derive the 'status' string
+                    state: accountData.state,
+                    predictionA: accountData.predictionA,
+                    predictionB: accountData.predictionB ? accountData.predictionB : undefined,
+                    expiryTs: duration, // Add expiryTs property to each object
+                };
+            });
+
+            setBets(formattedBets);
+        } catch (error) {
+            console.error("Failed to fetch bets:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [wallet, connection]);
+
     useEffect(() => {
-        const fetchBets = async () => {
-            if (!wallet) return;
-
-            const provider = new AnchorProvider(connection, wallet, AnchorProvider.defaultOptions());
-            const program = new Program(config.predictionsBetIdl, new PublicKey(config.predictionsBetProgramId), provider);
-
-            try {
-                const fetchedBets = await program.account.bet.all();
-                const formattedBets = fetchedBets.map(bet => {
-                    // Assuming the account data matches the IBetAccount interface
-                    const accountData = bet.account as unknown as IBetAccount;
-                    const duration = accountData.expiryTs.toNumber() - Math.floor(Date.now() / 1000);
-                  
-                    return {
-                        id: accountData.id.toString(),
-                        pair: "SOL/USDC", // Example, adjust as needed
-                        potVolume: accountData.amount.toNumber(), // Ensure this is a number
-                        duration,
-                        status: interpretBetState(accountData.state, duration), // Derive the 'status' string
-                        state: accountData.state,
-                        predictionA: accountData.predictionA,
-                        predictionB: accountData.predictionB ? accountData.predictionB : undefined,
-                        expiryTs: duration, // Add expiryTs property to each object
-                      };
-                  });
-
-                setBets(formattedBets);
-            } catch (error) {
-                console.error("Failed to fetch bets:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchBets();
-    }, [connection, wallet]);
+        if (wallet) {
+            fetchBets();
+        }
+    }, [wallet, fetchBets]);
 
     return { bets, isLoading };
 };
 
 export default useFetchAvailableBets;
+

@@ -1,70 +1,97 @@
-import {
-  PriceStatus,
-  PythHttpClient,
-  getPythProgramKeyForCluster,
-} from "@pythnetwork/client";
-import { useConnection } from "@solana/wallet-adapter-react";
+import { HermesClient } from "@pythnetwork/hermes-client";
 import { useEffect, useState } from "react";
 
-export const PythPriceFeed = () => {
-  const { connection } = useConnection();
+interface PythPriceFeedProps {
+  onChangePriceData: (data: { time: number; price: number }[]) => void;
+}
+
+export const PythPriceFeed = ({ onChangePriceData }: PythPriceFeedProps) => {
   const [message, setMessage] = useState(
     "Loading Crypto.SOL/USD price information..."
   );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    // Initialize the HermesClient
+    const hermesClient = new HermesClient("https://hermes.pyth.network", {});
+
+    // SOL/USD price ID (Devnet)
+    const solPriceId =
+      "0x89875379e70f8fbadc17aef315adf3a8d5d160b811435537e03c97e8aac97d9c";
+
+    let isMounted = true;
+
+    const fetchPriceUpdates = async () => {
       try {
-        if (!connection) {
-          console.error("No Solana connection available.");
-          setError("No Solana connection available.");
-          return;
-        }
+        // Fetch the latest price update for SOL/USD
+        const priceUpdates = await hermesClient.getLatestPriceUpdates([
+          solPriceId,
+        ]);
 
-        // Initialize PythHttpClient to fetch the current data
-        const pythPublicKey = getPythProgramKeyForCluster("devnet");
-        const pythClient = new PythHttpClient(connection, pythPublicKey);
+        if (priceUpdates.parsed?.length > 0) {
+          const priceUpdate = priceUpdates.parsed[0];
 
-        // Fetch the current data
-        const data = await pythClient.getData();
+          // Access the price, confidence, and exponent
+          const priceStr = priceUpdate.price.price;
+          const confStr = priceUpdate.price.conf;
+          const expo = priceUpdate.price.expo;
 
-        // Loop through the symbols to find Crypto.SOL/USD
-        for (let symbol of data.symbols) {
-          if (symbol === "Crypto.SOL/USD") {
-            const price = data.productPrice.get(symbol)!;
-            console.log("Price:", price);
-            if (price.aggregate.price && price.aggregate.confidence) {
+          // Convert strings to numbers
+          const price = parseFloat(priceStr);
+          const conf = parseFloat(confStr);
+
+          // Calculate the actual price and confidence
+          const actualPrice = price * Math.pow(10, expo);
+          const actualConf = conf * Math.pow(10, expo);
+
+          if (
+            !isNaN(actualPrice) &&
+            !isNaN(actualConf) &&
+            isFinite(actualPrice) &&
+            isFinite(actualConf)
+          ) {
+            const currentTime = Date.now();
+
+            if (isMounted) {
+              // Update the message
               setMessage(
-                `${symbol}: $${price.aggregate.price.toFixed(
-                  2
-                )} ±$${price.aggregate.confidence.toFixed(2)} Status: ${
-                  PriceStatus[price.aggregate.status]
-                }`
+                `SOL/USD: $${actualPrice.toFixed(2)} ±$${actualConf.toFixed(2)}`
               );
-            } else {
-              console.error("Price data is not available.");
-            }
-            return; // Exit loop once we have found and displayed the target symbol
-          }
-        }
 
-        // If the symbol was not found
-        setError("Crypto.SOL/USD data is not available at the moment.");
+              // Append the new price data to the array
+              onChangePriceData((prevData) => {
+                const newData = [
+                  ...prevData,
+                  { time: currentTime, price: actualPrice },
+                ];
+                // Optionally limit the array size to the last 60 entries
+                return newData.length > 60 ? newData.slice(-60) : newData;
+              });
+            }
+          } else {
+            console.error("Price data is not available or invalid.");
+          }
+        } else {
+          console.error("No price updates available.");
+        }
       } catch (err) {
-        setError(
-          "Failed to fetch data from Pyth. Please check your network and try again."
-        );
-        console.error("Pyth data fetch error:", err);
+        console.error("Error fetching price updates:", err);
+        setError("Failed to fetch price updates.");
       }
     };
 
-    if (connection) {
-      fetchData();
-    } else {
-      setError("Connection is not available.");
-    }
-  }, [connection]);
+    // Fetch price updates every second
+    const intervalId = setInterval(fetchPriceUpdates, 1000);
+
+    // Fetch immediately on mount
+    fetchPriceUpdates();
+
+    // Clean up when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div>

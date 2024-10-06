@@ -1,3 +1,4 @@
+import { set } from "@project-serum/anchor/dist/cjs/utils/features";
 import { HermesClient } from "@pythnetwork/hermes-client";
 import { useEffect, useState } from "react";
 
@@ -10,6 +11,8 @@ export const PythPriceFeed = ({ onChangePriceData }: PythPriceFeedProps) => {
     "Loading Crypto.SOL/USD price information..."
   );
   const [error, setError] = useState<string | null>(null);
+  const [actualPrice, setActualPrice] = useState<number | null>(null);
+  const [actualConf, setActualConf] = useState<number | null>(null);
 
   useEffect(() => {
     // Initialize the HermesClient
@@ -28,7 +31,7 @@ export const PythPriceFeed = ({ onChangePriceData }: PythPriceFeedProps) => {
           solPriceId,
         ]);
 
-        if (priceUpdates.parsed?.length > 0) {
+        if (priceUpdates.parsed && priceUpdates.parsed.length > 0) {
           const priceUpdate = priceUpdates.parsed[0];
 
           // Access the price, confidence, and exponent
@@ -57,6 +60,8 @@ export const PythPriceFeed = ({ onChangePriceData }: PythPriceFeedProps) => {
               setMessage(
                 `SOL/USD: $${actualPrice.toFixed(2)} ±$${actualConf.toFixed(2)}`
               );
+              setActualPrice(actualPrice);
+              setActualConf(actualConf);
 
               // Append the new price data to the array
               onChangePriceData((prevData) => {
@@ -95,7 +100,11 @@ export const PythPriceFeed = ({ onChangePriceData }: PythPriceFeedProps) => {
 
   return (
     <div>
-      {error ? <p style={{ color: "red" }}>{error}</p> : <p>{message}</p>}
+      {error ? (
+        <p style={{ color: "red" }}>{error}</p>
+      ) : (
+        <p className="text-xl">{message}</p>
+      )}
     </div>
   );
 };

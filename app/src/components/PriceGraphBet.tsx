@@ -16,6 +16,7 @@ import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { PythPriceFeed } from "@/components/PythPriceFeed";
 import { initializeMasterAccount } from "../hooks/initializeMasterAccount";
 import { useSmartContract } from "../hooks/PredictionBetting";
+import PriceGraphOverTime from "./PriceGraphoverTime";
 
 export const BettingComponent = () => {
   const { connection } = useConnection();
@@ -108,11 +109,7 @@ export const BettingComponent = () => {
             </form>
           </div>
           <div className="flex flex-col justify-center space-y-4 hidden md:block overflow-x-auto sm:mt-8">
-            <div className="graph-area bg-gray-200 dark:bg-gray-700 h-64 flex items-center justify-center">
-              <p className="text-gray-500 dark:text-gray-300">
-                Price Graph Placeholder
-              </p>
-            </div>
+            <PriceGraphOverTime priceData={priceData} />
           </div>
         </div>
       </div>

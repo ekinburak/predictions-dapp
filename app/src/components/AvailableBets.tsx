@@ -61,7 +61,13 @@ const AvailableBets: React.FC<AvailableBetsProps> = ({
   };
 
   if (!connected)
-    return <p>Please connect your wallet to see previous bets.</p>;
+    return (
+      <div className="flex items-center justify-center">
+        <p className="align-center">
+          Please connect your wallet to see previous bets.
+        </p>
+      </div>
+    );
 
   if (isLoading) return <p>Loading bets...</p>;
 

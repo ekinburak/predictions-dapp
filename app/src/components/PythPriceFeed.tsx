@@ -1,17 +1,17 @@
 import {
   PriceStatus,
-  PythConnection,
+  PythHttpClient,
   getPythProgramKeyForCluster,
 } from "@pythnetwork/client";
 import { useConnection } from "@solana/wallet-adapter-react";
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const PythPriceFeed = () => {
   const { connection } = useConnection();
   const [message, setMessage] = useState(
-    "Loading Crypto.BTC/USD price information..."
+    "Loading Crypto.SOL/USD price information..."
   );
-  const [error, setError] = useState<string | null>(null); // State to store error messages
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,57 +22,40 @@ export const PythPriceFeed = () => {
           return;
         }
 
-        // Log the connection to verify it's correct
-        console.log("Connection established:", connection);
+        // Initialize PythHttpClient to fetch the current data
+        const pythPublicKey = getPythProgramKeyForCluster("devnet");
+        const pythClient = new PythHttpClient(connection, pythPublicKey);
 
-        // Attempt to create a Pyth connection
-        const pythConnection = new PythConnection(
-          connection,
-          getPythProgramKeyForCluster("devnet")
-        );
+        // Fetch the current data
+        const data = await pythClient.getData();
 
-        // Log the Pyth connection object
-        console.log("PythConnection initialized:", pythConnection);
-
-        pythConnection.onPriceChange((product, price) => {
-          console.log("Price change detected:", product, price); // Debug the price change
-
-          try {
-            // Check if the update is for Crypto.SOL/USD
-            if (product.symbol === "Crypto.SOL/USD") {
-              if (price.price && price.confidence) {
-                setMessage(
-                  `${product.symbol}: $${price.price.toFixed(
-                    2
-                  )} ±$${price.confidence.toFixed(2)}`
-                );
-              } else {
-                setMessage(
-                  `${product.symbol}: Price currently unavailable. Status is ${
-                    PriceStatus[price.status]
-                  }`
-                );
-              }
+        // Loop through the symbols to find Crypto.SOL/USD
+        for (let symbol of data.symbols) {
+          if (symbol === "Crypto.SOL/USD") {
+            const price = data.productPrice.get(symbol)!;
+            console.log("Price:", price);
+            if (price.aggregate.price && price.aggregate.confidence) {
+              setMessage(
+                `${symbol}: $${price.aggregate.price.toFixed(
+                  2
+                )} ±$${price.aggregate.confidence.toFixed(2)} Status: ${
+                  PriceStatus[price.aggregate.status]
+                }`
+              );
+            } else {
+              console.error("Price data is not available.");
             }
-          } catch (err) {
-            setError("Error processing price data. Please try again later.");
-            console.error("Price data error:", err);
+            return; // Exit loop once we have found and displayed the target symbol
           }
-        });
+        }
 
-        // Start fetching price data
-        pythConnection.start();
-
-        // Cleanup function to stop the connection when the component unmounts
-        return () => {
-          pythConnection.stop();
-        };
+        // If the symbol was not found
+        setError("Crypto.SOL/USD data is not available at the moment.");
       } catch (err) {
-        // Catch any errors related to connection setup
         setError(
-          "Failed to establish connection with Pyth. Please check your network and try again."
+          "Failed to fetch data from Pyth. Please check your network and try again."
         );
-        console.error("Pyth connection error:", err);
+        console.error("Pyth data fetch error:", err);
       }
     };
 
@@ -81,7 +64,7 @@ export const PythPriceFeed = () => {
     } else {
       setError("Connection is not available.");
     }
-  }, [connection]); // Depend on connection to re-initialize if it changes
+  }, [connection]);
 
   return (
     <div>

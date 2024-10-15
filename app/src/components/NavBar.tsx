@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { PersonIcon } from "@radix-ui/react-icons";
 
 export function NavBar() {
   // Use the specified type in function parameter
@@ -26,20 +27,10 @@ export function NavBar() {
             {connected && (
               <a
                 href="/profile-edit"
-                className="text-black hover:text-gray-300 mr-2"
+                className="text-black hover:text-gray-300 mr-2 w-5 h-4 text-lg"
               >
                 {/* Your profile icon */}
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path d="M5.121 17.121a3 3 0 111.415 1.414M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M16 3a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <PersonIcon className="w-4 h-4 text-lg" />
               </a>
             )}
             <WalletMultiButton

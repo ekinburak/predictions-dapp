@@ -1,91 +1,110 @@
-import {
-  PriceStatus,
-  PythConnection,
-  getPythProgramKeyForCluster,
-} from "@pythnetwork/client";
-import { useConnection } from "@solana/wallet-adapter-react";
-import React, { useState, useEffect } from "react";
+import { set } from "@project-serum/anchor/dist/cjs/utils/features";
+import { HermesClient } from "@pythnetwork/hermes-client";
+import { useEffect, useState } from "react";
 
-export const PythPriceFeed = () => {
-  const { connection } = useConnection();
+interface PythPriceFeedProps {
+  onChangePriceData: (data: { time: number; price: number }[]) => void;
+}
+
+export const PythPriceFeed = ({ onChangePriceData }: PythPriceFeedProps) => {
   const [message, setMessage] = useState(
-    "Loading Crypto.BTC/USD price information..."
+    "Loading Crypto.SOL/USD price information..."
   );
-  const [error, setError] = useState<string | null>(null); // State to store error messages
+  const [error, setError] = useState<string | null>(null);
+  const [actualPrice, setActualPrice] = useState<number | null>(null);
+  const [actualConf, setActualConf] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    // Initialize the HermesClient
+    const hermesClient = new HermesClient("https://hermes.pyth.network", {});
+
+    // SOL/USD price ID (Devnet)
+    const solPriceId =
+      "0x89875379e70f8fbadc17aef315adf3a8d5d160b811435537e03c97e8aac97d9c";
+
+    let isMounted = true;
+
+    const fetchPriceUpdates = async () => {
       try {
-        if (!connection) {
-          console.error("No Solana connection available.");
-          setError("No Solana connection available.");
-          return;
-        }
+        // Fetch the latest price update for SOL/USD
+        const priceUpdates = await hermesClient.getLatestPriceUpdates([
+          solPriceId,
+        ]);
 
-        // Log the connection to verify it's correct
-        console.log("Connection established:", connection);
+        if (priceUpdates.parsed && priceUpdates.parsed.length > 0) {
+          const priceUpdate = priceUpdates.parsed[0];
 
-        // Attempt to create a Pyth connection
-        const pythConnection = new PythConnection(
-          connection,
-          getPythProgramKeyForCluster("devnet")
-        );
+          // Access the price, confidence, and exponent
+          const priceStr = priceUpdate.price.price;
+          const confStr = priceUpdate.price.conf;
+          const expo = priceUpdate.price.expo;
 
-        // Log the Pyth connection object
-        console.log("PythConnection initialized:", pythConnection);
+          // Convert strings to numbers
+          const price = parseFloat(priceStr);
+          const conf = parseFloat(confStr);
 
-        pythConnection.onPriceChange((product, price) => {
-          console.log("Price change detected:", product, price); // Debug the price change
+          // Calculate the actual price and confidence
+          const actualPrice = price * Math.pow(10, expo);
+          const actualConf = conf * Math.pow(10, expo);
 
-          try {
-            // Check if the update is for Crypto.SOL/USD
-            if (product.symbol === "Crypto.SOL/USD") {
-              if (price.price && price.confidence) {
-                setMessage(
-                  `${product.symbol}: $${price.price.toFixed(
-                    2
-                  )} ±$${price.confidence.toFixed(2)}`
-                );
-              } else {
-                setMessage(
-                  `${product.symbol}: Price currently unavailable. Status is ${
-                    PriceStatus[price.status]
-                  }`
-                );
-              }
+          if (
+            !isNaN(actualPrice) &&
+            !isNaN(actualConf) &&
+            isFinite(actualPrice) &&
+            isFinite(actualConf)
+          ) {
+            const currentTime = Date.now();
+
+            if (isMounted) {
+              // Update the message
+              setMessage(
+                `SOL/USD: $${actualPrice.toFixed(2)} ±$${actualConf.toFixed(2)}`
+              );
+              setActualPrice(actualPrice);
+              setActualConf(actualConf);
+
+              // Append the new price data to the array
+              onChangePriceData((prevData) => {
+                const newData = [
+                  ...prevData,
+                  { time: currentTime, price: actualPrice },
+                ];
+                // Optionally limit the array size to the last 60 entries
+                return newData.length > 60 ? newData.slice(-60) : newData;
+              });
             }
-          } catch (err) {
-            setError("Error processing price data. Please try again later.");
-            console.error("Price data error:", err);
+          } else {
+            console.error("Price data is not available or invalid.");
           }
-        });
-
-        // Start fetching price data
-        pythConnection.start();
-
-        // Cleanup function to stop the connection when the component unmounts
-        return () => {
-          pythConnection.stop();
-        };
+        } else {
+          console.error("No price updates available.");
+        }
       } catch (err) {
-        // Catch any errors related to connection setup
-        setError(
-          "Failed to establish connection with Pyth. Please check your network and try again."
-        );
-        console.error("Pyth connection error:", err);
+        console.error("Error fetching price updates:", err);
+        setError("Failed to fetch price updates.");
       }
     };
 
-    if (connection) {
-      fetchData();
-    } else {
-      setError("Connection is not available.");
-    }
-  }, [connection]); // Depend on connection to re-initialize if it changes
+    // Fetch price updates every second
+    const intervalId = setInterval(fetchPriceUpdates, 1000);
+
+    // Fetch immediately on mount
+    fetchPriceUpdates();
+
+    // Clean up when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div>
-      {error ? <p style={{ color: "red" }}>{error}</p> : <p>{message}</p>}
+      {error ? (
+        <p style={{ color: "red" }}>{error}</p>
+      ) : (
+        <p className="text-xl">{message}</p>
+      )}
     </div>
   );
 };
